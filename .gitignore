@@ -20,3 +20,5 @@ node_modules/
 
 # OS / editor
 .DS_Store
+
+specstory.egg-info/
