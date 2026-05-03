@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-ink-950 text-mist-100;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(232, 93, 76, 0.12), transparent),
+    radial-gradient(ellipse 80% 50% at 100% 100%, rgba(42, 51, 68, 0.5), transparent);
+}

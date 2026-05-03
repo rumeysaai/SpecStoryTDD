@@ -1,0 +1,9 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
+pydantic>=2.5
+anthropic>=0.40
+openai>=1.40
+
+[dev]
+httpx>=0.26

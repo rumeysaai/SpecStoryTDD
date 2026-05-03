@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+specstory/__init__.py
+specstory.egg-info/PKG-INFO
+specstory.egg-info/SOURCES.txt
+specstory.egg-info/dependency_links.txt
+specstory.egg-info/requires.txt
+specstory.egg-info/top_level.txt
+specstory/backend/__init__.py
+specstory/backend/main.py
+specstory/backend/services/__init__.py
+specstory/backend/services/aligner.py
+specstory/backend/services/llm_service.py
+specstory/backend/services/parser.py

@@ -1,0 +1,223 @@
+Metadata-Version: 2.4
+Name: specstory
+Version: 0.1.0
+Summary: SpecStory backend
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.27
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: pydantic>=2.5
+Requires-Dist: anthropic>=0.40
+Requires-Dist: openai>=1.40
+Provides-Extra: dev
+Requires-Dist: httpx>=0.26; extra == "dev"
+
+# SpecStoryTDD
+
+> **Hybrid TDD/SDD Framework** — Align User Stories with OpenAPI Specifications, detect conflicts automatically, and generate Pytest test suites with AI.
+
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688.svg)](https://fastapi.tiangolo.com)
+[![LangChain](https://img.shields.io/badge/LangChain-0.2%2B-1C3C3C.svg)](https://python.langchain.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
+
+## 📖 What is SpecStoryTDD?
+
+SpecStoryTDD bridges the gap between **product requirements** and **API contracts**. It takes:
+
+- A **User Story** (Markdown) describing the expected behaviour from a user's perspective, and  
+- An **OpenAPI 3.x Specification** (JSON) describing the technical contract of the API.
+
+…and automatically:
+
+1. **Detects logical conflicts** — e.g. a story expects HTTP 401 but the spec only defines 400; or a field that must be hidden is present in the response schema.
+2. **Generates a Pytest test suite** — ready-to-run tests that encode the acceptance criteria and expose the conflicts.
+
+This approach combines **Specification-Driven Development (SDD)** and **Test-Driven Development (TDD)** into a single AI-powered feedback loop.
+
+---
+
+## 🗂️ Repository Structure
+
+```
+SpecStoryTDD/
+├── src/
+│   └── backend/
+│       ├── __init__.py
+│       ├── api.py          # FastAPI application (REST endpoints)
+│       ├── config.py       # pydantic-settings configuration
+│       ├── engine.py       # AlignmentEngine — core analysis + retry loop
+│       └── models.py       # Pydantic data models (request / response)
+├── tests/
+│   ├── __init__.py
+│   ├── test_engine.py      # Unit tests for AlignmentEngine
+│   └── test_api.py         # Integration tests for FastAPI endpoints
+├── data/
+│   └── samples/
+│       ├── user_story_login.md    # Example user story (with intentional conflicts)
+│       └── openapi_login.json     # Example OpenAPI spec (with intentional conflicts)
+├── docs/
+│   └── architecture.md     # Architecture diagrams and component descriptions
+├── pyproject.toml          # Project metadata, dependencies, tooling config
+└── README.md
+```
+
+---
+
+## ⚙️ Installation
+
+### Prerequisites
+
+- Python **3.11** or newer
+- An **OpenAI API key** (or compatible LLM backend)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/rumeysaai/SpecStoryTDD.git
+cd SpecStoryTDD
+```
+
+### 2. Create and activate a virtual environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -e ".[dev]"
+```
+
+### 4. Configure environment variables
+
+Create a `.env` file in the project root:
+
+```dotenv
+OPENAI_API_KEY=sk-...
+LLM_MODEL=gpt-4o          # optional, default: gpt-4o
+LLM_TEMPERATURE=0.2        # optional, default: 0.2
+```
+
+---
+
+## 🚀 Running the API Server
+
+```bash
+uvicorn src.backend.api:app --reload --host 0.0.0.0 --port 8000
+```
+
+Interactive docs are available at `http://localhost:8000/docs`.
+
+---
+
+## 🧪 Running Tests
+
+```bash
+pytest
+```
+
+Tests are fully offline — the LLM is mocked so **no API key is required** to run the test suite.
+
+---
+
+## 🔄 Hybrid TDD/SDD Workflow
+
+```
+┌──────────────────────────────────────────────────────┐
+│  1. Write User Story (Markdown)                      │
+│     └─▶  data/samples/user_story_*.md                │
+│                                                      │
+│  2. Write / obtain OpenAPI Spec (JSON)               │
+│     └─▶  data/samples/openapi_*.json                 │
+│                                                      │
+│  3. POST /analyse                                    │
+│     └─▶  AlignmentEngine analyses both artefacts     │
+│                                                      │
+│  4. Review Conflicts                                 │
+│     └─▶  Update spec or story to resolve conflicts   │
+│                                                      │
+│  5. Use Generated Pytest Suite                       │
+│     └─▶  Run tests against your actual API           │
+│          (Red → fix implementation → Green)          │
+└──────────────────────────────────────────────────────┘
+```
+
+### Example API Request
+
+```bash
+curl -X POST http://localhost:8000/analyse \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_story": "## As a user I want to log in...",
+    "openapi_spec": { "openapi": "3.1.0", ... }
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "conflicts": [
+    {
+      "id": "C-001",
+      "title": "Missing 401 response",
+      "description": "The user story requires HTTP 401 for invalid credentials, but the spec only defines 400.",
+      "severity": "high",
+      "story_reference": "the API returns HTTP 401",
+      "spec_reference": "/login > post > responses",
+      "suggested_fix": "Add a 401 response definition to the /login POST operation."
+    }
+  ],
+  "test_suite": [
+    {
+      "name": "test_login_returns_401_for_invalid_credentials",
+      "description": "Ensure the login endpoint returns 401 when credentials are invalid.",
+      "code": "def test_login_returns_401_for_invalid_credentials(client):\n    ..."
+    }
+  ],
+  "summary": "Found 1 conflict: a missing 401 response definition."
+}
+```
+
+---
+
+## 🔁 LLM Retry / Feedback Loop
+
+The `AlignmentEngine` implements a self-correcting feedback loop:
+
+```
+Attempt N  →  LLM call  →  parse JSON  →  Pydantic validate
+                                 │
+                          ✗ failure?
+                                 │
+                    append error to conversation
+                                 │
+                          re-prompt LLM  →  Attempt N+1
+```
+
+If the LLM returns malformed JSON or a response that doesn't match the expected schema, the specific validation error is fed back into the conversation so the model can self-correct — up to `max_retries` attempts (default: 3).
+
+---
+
+## 🛠️ Tech Stack
+
+| Component | Library |
+|-----------|---------|
+| REST API | [FastAPI](https://fastapi.tiangolo.com) |
+| LLM integration | [LangChain](https://python.langchain.com) + `langchain-openai` |
+| Data validation | [Pydantic v2](https://docs.pydantic.dev) |
+| Configuration | [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) |
+| Retry logic | [Tenacity](https://tenacity.readthedocs.io) |
+| Testing | [Pytest](https://pytest.org) + [pytest-asyncio](https://pytest-asyncio.readthedocs.io) |
+
+---
+
+## 📄 License
+
+MIT © 2024 rumeysaai
