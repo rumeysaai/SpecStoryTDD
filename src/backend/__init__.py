@@ -1,1 +1,0 @@
-"""SpecStoryTDD backend package."""
